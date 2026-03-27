@@ -1,0 +1,188 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active AI Equity Portfolio - Master Terminal v12.0.0</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./state.js" defer></script>
+    <script src="./data.js" defer></script>
+    <script src="./finance.js" defer></script>
+    <script src="./sync.js" defer></script>
+    <script src="./app.js" defer></script>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Active AI Equity Portfolio <span class="version-badge">v12.0.0 G-FINANCE CORE</span></h1>
+            <p>Strict Price Integrity, Mathematical Dependencies & Google Finance Pipeline</p>
+        </div>
+        <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+            <button id="live-update-btn" class="sync-btn" onclick="fetchGoogleFinance()">
+                <span class="live-pulse"></span>FETCH LIVE DATA (G-FINANCE)
+            </button>
+            <div id="live-date-header" style="color: var(--text-muted); font-size: 12px;">Prices locked to True Market Close (Mar 26)</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="nav-home active" id="btn-home" onclick="showHome()">⌂ PORTFOLIO HOME</div>
+            <div id="sidebar-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <div class="content-panel" id="home-panel" style="display: block;">
+            <div class="home-grid">
+                <div class="home-card">
+                    <div class="kpi-title">PORTFOLIO SINCE INCEPTION</div>
+                    <div class="kpi-value-small neutral" id="dash-port-inc">0.00%</div>
+                    <div class="kpi-title" style="margin-top: 10px;">PORTFOLIO YTD RETURN</div>
+                    <div class="kpi-value green" id="dash-port-ytd">+14.24%</div>
+                </div>
+                <div class="home-card">
+                    <div class="kpi-title">BENCHMARK SINCE INCEPTION</div>
+                    <div class="kpi-value-small neutral" id="dash-bench-inc">0.00%</div>
+                    <div class="kpi-title" style="margin-top: 10px;">PASSIVE BENCHMARK YTD</div>
+                    <div class="kpi-value neutral" id="dash-bench-ytd">+8.50%</div>
+                </div>
+                <div class="home-card alpha-card">
+                    <div class="kpi-title">ALPHA SINCE INCEPTION</div>
+                    <div class="kpi-value-small neutral" id="dash-alpha-inc">0.00%</div>
+                    <div class="kpi-title" style="margin-top: 10px;">RELATIVE ALPHA GENERATED</div>
+                    <div class="kpi-value blue" id="dash-alpha-ytd">+5.74%</div>
+                </div>
+            </div>
+
+            <div class="charts-row-top">
+                <div class="chart-box-half">
+                    <h3 style="color: var(--text-main); margin: 0 0 10px 0; font-size: 13px; text-align: center;">YTD Performance Trajectory</h3>
+                    <div class="chart-inner"><canvas id="ytdPerformanceChart"></canvas></div>
+                </div>
+                <div class="chart-box-half">
+                    <h3 style="color: var(--text-main); margin: 0 0 10px 0; font-size: 13px; text-align: center;">Performance Since Inception (Mar 20 Base)</h3>
+                    <div class="chart-inner"><canvas id="inceptionPerformanceChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="chart-box-full">
+                <h3 style="color: var(--text-main); margin: 0 0 10px 0; font-size: 13px; text-align: center;">Active Allocation vs Benchmark (Click bar to open evaluation model)</h3>
+                <div class="chart-inner"><canvas id="activeWeightsChart"></canvas></div>
+            </div>
+
+            <h3 class="section-title">Dynamic Portfolio Analytics</h3>
+            <div class="grid-metrics" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="metric-card">
+                    <div class="metric-title" style="color: #fff; font-size: 13px;">Attribution Analysis (YTD Est.)</div>
+                    <div style="font-size: 13px; margin-top: 12px; color: var(--text-main);">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Sector/Factor Allocation:</span> <span class="positive-val" id="attr-alloc">+4.12%</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Stock Selection Effect:</span> <span class="positive-val" id="attr-sel">+1.85%</span></div>
+                        <div style="display:flex; justify-content:space-between; border-top: 1px solid var(--border); padding-top: 8px;"><span>Interaction Effect:</span> <span class="negative-val" id="attr-int">-0.23%</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-top:8px;"><span>Total Active Return:</span> <span class="accent" style="font-weight:bold;" id="attr-tot">+5.74%</span></div>
+                        <div style="margin-top:10px; font-size:10px; color:#6e7681; font-style:italic;">*Estimated split based on heuristic ratios, not full Brinson attribution.</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title" style="color: #fff; font-size: 13px;">Performance Analysis</div>
+                    <div style="font-size: 13px; margin-top: 12px; color: var(--text-main);">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Information Ratio:</span> <span class="accent" style="font-weight:bold;" id="perf-ir">1.40</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Batting Average:</span> <span style="font-weight:bold;" id="perf-bat">68.5%</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Upside Capture Ratio:</span> <span style="font-weight:bold;" id="perf-up-cap">125%</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Downside Capture Ratio:</span> <span style="font-weight:bold;" id="perf-dn-cap">78%</span></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title" style="color: #fff; font-size: 13px;">Risk Analysis</div>
+                    <div style="font-size: 13px; margin-top: 12px; color: var(--text-main);">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Tracking Error (Ann.):</span> <span style="font-weight:bold;" id="risk-te">4.10%</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Portfolio Beta (vs. S&P):</span> <span style="font-weight:bold;" id="risk-beta">1.25</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Sharpe Ratio:</span> <span style="font-weight:bold;" id="risk-sharpe">2.15</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Max Drawdown (YTD):</span> <span class="negative-val" id="drawdown-val">-6.40%</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-panel" id="stock-panel">
+            <div class="top-meta">
+                <div>
+                    <h2 id="stock-name" style="margin: 0; color: #fff; font-size: 28px;">-</h2>
+                    <div id="stock-ticker" style="color: var(--text-muted); font-size: 15px; margin-top: 5px; font-weight: 500;">-</div>
+                </div>
+            </div>
+
+            <div class="grid-metrics">
+                <div class="metric-card" style="border-color: #388bfd; background-color: rgba(56, 139, 253, 0.05);"><div class="metric-title" style="color: var(--accent);">Live Market Price</div><div class="metric-value neutral" style="color: #fff;" id="last-price">-</div></div>
+                <div class="metric-card"><div class="metric-title">Live Market Cap</div><div class="metric-value neutral" id="market-cap">-</div></div>
+                <div class="metric-card"><div class="metric-title">Manager Target ('26)</div><div class="metric-value neutral" id="target-price">-</div></div>
+                <div class="metric-card"><div class="metric-title">Dynamic Price Upside</div><div class="metric-value" id="upside">-</div></div>
+                <div class="metric-card"><div class="metric-title">Active Weight</div><div class="metric-value accent" id="active-weight">-</div></div>
+            </div>
+
+            <div class="section-title">Investment Rationale & Execution Cadence</div>
+            <div class="text-content" id="rationale"></div>
+
+            <div class="section-title">Forward Valuation Comps (Est. FY26/FY27)</div>
+            <div class="comps-grid">
+                <div class="comp-box"><div class="comp-label">Forward P/E</div><div class="comp-val" id="comp-pe">-</div></div>
+                <div class="comp-box"><div class="comp-label">PEG Ratio</div><div class="comp-val" id="comp-peg" style="color:var(--positive);">-</div></div>
+                <div class="comp-box"><div class="comp-label">Forward P/S</div><div class="comp-val" id="comp-ps">-</div></div>
+                <div class="comp-box"><div class="comp-label">PSG Ratio</div><div class="comp-val" id="comp-psg" style="color:var(--positive);">-</div></div>
+            </div>
+
+            <div class="section-title">8-Year Interactive Financial Engine (FY23 – FY30E)</div>
+            <div class="text-content">
+                Historical metrics are locked. Projections for FY26E–FY30E are active inputs. <strong>Revenue YoY, Margins, and Shares Outstanding are adjustable.</strong> The engine automatically flows downward to derive Total Revenue, Gross Profit, Operating Income, Net Income, and EPS in real time.
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Financial Metric</th>
+                            <th class="hist-col">FY23 (A)</th>
+                            <th class="hist-col">FY24 (A)</th>
+                            <th class="hist-col">FY25 (A)</th>
+                            <th class="proj-col" style="color: var(--accent);">FY26E (Input)</th>
+                            <th class="proj-col" style="color: var(--accent);">FY27E (Input)</th>
+                            <th class="proj-col" style="color: var(--accent);">FY28E (Input)</th>
+                            <th class="proj-col" style="color: var(--accent);">FY29E (Input)</th>
+                            <th class="proj-col" style="color: var(--accent);">FY30E (Input)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fin-tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="section-title">Dynamic DCF Evaluation</div>
+            <div class="text-content">
+                Calculates Implied Share Price directly from the 5-Year Net Income Projections above. Adjust the WACC, Terminal Growth, and target FCF conversion metric to recalculate intrinsic value dynamically against the actual <strong>Live Market Price</strong>.
+            </div>
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div class="comp-box" style="flex: 1; display:flex; justify-content: space-between; align-items: center; border-color: var(--border);">
+                    <div class="comp-label" style="margin:0;">WACC (%)</div>
+                    <input type="number" id="dcf-wacc" class="dcf-input" step="0.1" oninput="runEngine()">
+                </div>
+                <div class="comp-box" style="flex: 1; display:flex; justify-content: space-between; align-items: center; border-color: var(--border);">
+                    <div class="comp-label" style="margin:0;">Terminal Growth Rate (%)</div>
+                    <input type="number" id="dcf-tgr" class="dcf-input" step="0.1" oninput="runEngine()">
+                </div>
+                <div class="comp-box" style="flex: 1; display:flex; justify-content: space-between; align-items: center; border-color: var(--border);">
+                    <div class="comp-label" style="margin:0;">FCF Conversion (% of NI)</div>
+                    <input type="number" id="dcf-fcfc" class="dcf-input" step="1" oninput="runEngine()">
+                </div>
+            </div>
+            <div class="comps-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 10px;">
+                <div class="comp-box" style="background-color: rgba(88, 166, 255, 0.05); border-color: var(--accent); padding: 20px;">
+                    <div class="comp-label">Implied Share Price (DCF)</div>
+                    <div class="comp-val" id="dcf-price" style="font-size: 28px;">-</div>
+                </div>
+                <div class="comp-box" style="background-color: rgba(88, 166, 255, 0.05); border-color: var(--accent); padding: 20px;">
+                    <div class="comp-label">DCF Premium / Discount to Live Price</div>
+                    <div class="comp-val" id="dcf-upside" style="font-size: 28px;">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
